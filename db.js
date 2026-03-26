@@ -1,8 +1,12 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcrypt');
+const fs = require('fs');
 
-const dbPath = path.resolve(__dirname, 'tickets.db');
+const dataDir = path.resolve(__dirname, 'data');
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+const dbPath = path.resolve(dataDir, 'tickets.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error al conectar con la base de datos:', err.message);
@@ -79,3 +83,4 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 module.exports = db;
+ 
