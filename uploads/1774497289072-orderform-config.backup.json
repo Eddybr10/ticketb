@@ -1,0 +1,61 @@
+﻿{
+    "paymentConfiguration":  {
+                                 "requiresAuthenticationForPreAuthorizedPaymentOption":  false,
+                                 "allowInstallmentsMerge":  null,
+                                 "blockPaymentSession":  null,
+                                 "paymentSystemToCheckFirstInstallment":  null,
+                                 "defaultPaymentSystemToApplyOnUserOrderForm":  null,
+                                 "alwaysShowMarketplacePaymentSystems":  false
+                             },
+    "taxConfiguration":  null,
+    "minimumQuantityAccumulatedForItems":  1,
+    "decimalDigitsPrecision":  2,
+    "minimumValueAccumulated":  0,
+    "apps":  [
+                 {
+                     "fields":  [
+                                    "cart-extra-context",
+                                    "cart-type"
+                                ],
+                     "id":  "cart-extra-context",
+                     "major":  1
+                 },
+                 {
+                     "fields":  [
+                                    "paypal_order_id"
+                                ],
+                     "id":  "paypal_card_fields",
+                     "major":  1
+                 },
+                 {
+                     "fields":  [
+                                    "term",
+                                    "monthlyValue",
+                                    "totalValue",
+                                    "currency",
+                                    "hasInterest",
+                                    "interestAmount",
+                                    "baseAmount",
+                                    "period",
+                                    "interval_duration"
+                                ],
+                     "id":  "paypal_installments",
+                     "major":  1
+                 }
+             ],
+    "allowMultipleDeliveries":  false,
+    "allowManualPrice":  null,
+    "savePersonalDataAsOptIn":  false,
+    "maxNumberOfWhiteLabelSellers":  null,
+    "recaptchaValidation":  null,
+    "recaptchaMinScore":  null,
+    "recaptchaKeys":  null,
+    "maskStateOnAddress":  null,
+    "additionalRoutingSellersIds":  [
+
+                                    ],
+    "useOwnershipCookie":  null,
+    "ignoreProfileData":  null,
+    "useIndividualShippingEstimates":  false,
+    "allowMultipleCoupons":  false
+}
