@@ -200,7 +200,18 @@ app.post('/api/admin/tickets/:id/request-approval', authenticateAdmin, (req, res
 });
 
 app.get('/api/approver/tickets', authenticateAny, (req, res) => {
-  db.all("SELECT * FROM tickets WHERE approvalState = 'Wait' ORDER BY createdAt DESC", (err, rows) => {
+  const username = req.user.username;
+  
+  let query = "SELECT * FROM tickets WHERE approvalState = 'Wait' ORDER BY createdAt DESC";
+  let params = [];
+
+  if (username === 'karen') {
+    query = "SELECT * FROM tickets WHERE approvalState = 'Wait' AND karenApproval = 'Pending' ORDER BY createdAt DESC";
+  } else if (username === 'raul') {
+    query = "SELECT * FROM tickets WHERE approvalState = 'Wait' AND raulApproval = 'Pending' ORDER BY createdAt DESC";
+  }
+
+  db.all(query, params, (err, rows) => {
      res.json(rows || []);
   });
 });
