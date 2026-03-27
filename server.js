@@ -15,15 +15,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan('[:date[iso]] :method :url :status :res[content-length] - :response-time ms'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
 
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, 'data', 'uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
+  destination: (req, file, cb) => cb(null, path.join(__dirname, 'data', 'uploads')),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
@@ -155,11 +155,47 @@ app.get('/api/admin/tickets/:id', authenticateAny, (req, res) => {
 // --- APPROVAL SYSTEM ROUTES ---
 app.post('/api/admin/tickets/:id/request-approval', authenticateAdmin, (req, res) => {
   const { id } = req.params;
-  const q = "UPDATE tickets SET approvalState = 'Wait', karenApproval = 'Pending', raulApproval = 'Pending' WHERE id = ?";
-  db.run(q, [id], function(err) {
-     if(err) return res.status(500).json({error: err.message});
-     db.run("INSERT INTO messages (ticketId, sender, message) VALUES (?, 'System', 'El ticket fue enviado a proceso de Aprobación Gerencial (Karen y Raúl).')", [id]);
-     res.json({success: true});
+  const { comment } = req.body;
+  const formattedId = formatId(id);
+
+  db.get('SELECT * FROM tickets WHERE id = ?', [id], (err, ticket) => {
+    if (err || !ticket) return res.status(404).json({ error: 'Ticket not found' });
+    
+    const q = "UPDATE tickets SET approvalState = 'Wait', karenApproval = 'Pending', raulApproval = 'Pending' WHERE id = ?";
+    db.run(q, [id], function(err) {
+       if(err) return res.status(500).json({error: err.message});
+       
+       const messageText = `El ticket fue enviado a proceso de Aprobación Gerencial (Karen y Raúl).${comment ? `\n\nComentario del Administrador:\n${comment}` : ''}`;
+       
+       db.run("INSERT INTO messages (ticketId, sender, message) VALUES (?, 'System', ?)", [id, messageText]);
+
+       // Send email to managers
+       const managers = ['kcalderon@oemoda.com', 'rgalvan@oemoda.com'];
+       const content = `
+         <p style="color: #d4d4d8; line-height: 1.6; font-size: 15px;">Se requiere tu aprobación para el ticket <strong>${formattedId}</strong>.</p>
+         <div style="background-color: #18181b; border: 1px solid #27272a; padding: 20px; margin: 24px 0; border-radius: 8px;">
+           <table style="width: 100%; font-size: 14px; color: #d4d4d8; border-collapse: collapse;">
+             <tr><td style="padding: 6px 0; border-bottom: 1px solid #27272a;"><strong>Asunto:</strong></td><td style="padding: 6px 0; border-bottom: 1px solid #27272a; text-align: right;">${ticket.subject}</td></tr>
+             <tr><td style="padding: 6px 0; border-bottom: 1px solid #27272a;"><strong>Categoría:</strong></td><td style="padding: 6px 0; border-bottom: 1px solid #27272a; text-align: right;">${ticket.category || 'N/A'}</td></tr>
+             <tr><td style="padding: 6px 0;"><strong>Prioridad:</strong></td><td style="padding: 6px 0; text-align: right;">${ticket.urgency || 'N/A'}</td></tr>
+           </table>
+         </div>
+         ${comment ? `
+         <p style="color: #d4d4d8; line-height: 1.6; font-size: 15px;"><strong>Comentario del Administrador:</strong></p>
+         <div style="background-color: #18181b; border: 1px solid #27272a; border-left: 4px solid #3b82f6; padding: 16px; margin: 16px 0; border-radius: 4px; color: #a1a1aa; font-style: italic; white-space: pre-wrap;">
+           ${comment}
+         </div>
+         ` : ''}
+         <p style="color: #a1a1aa; line-height: 1.6; font-size: 14px; text-align: center; margin-top: 24px;">Por favor, ingresa al panel para aprobar o rechazar este ticket.</p>
+       `;
+       const htmlContent = getPremiumEmailTemplate(ticket.brand, `Aprobación Requerida: ${formattedId}`, content);
+       
+       managers.forEach(email => {
+         sendMail(email, `Aprobación Requerida ${formattedId}: ${ticket.subject}`, htmlContent).catch(console.error);
+       });
+       
+       res.json({success: true});
+    });
   });
 });
 
